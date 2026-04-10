@@ -12,20 +12,6 @@ The application fetches live OpenStreetMap data through the Overpass API, render
 
 Hipparchus is a standalone map creation tool focused on live online data, clean rendering, and editable vector export.
 
-## Repository Description
-
-Suggested GitHub repository description:
-
-```text
-Online desktop vector cartography app for creating clean OpenStreetMap-based SVG maps.
-```
-
-Suggested GitHub topics:
-
-```text
-cartography, openstreetmap, overpass-api, svg, tkinter, skia, shapely, maps, vector-graphics, python
-```
-
 ## Features
 
 - Online-only OpenStreetMap fetching through Overpass.
