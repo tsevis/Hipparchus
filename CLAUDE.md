@@ -56,13 +56,6 @@ failed, it has not tested anything. Delete it.
 The red run is the only thing that proves the test can speak. Skipping it
 produces documentation written with `assert`, paid for on every run, forever.
 
-A supporting figure exists — 97 of mozaix's 11.555 test functions (0,42%) and 26
-of cgmcreator's 2.398 (1,1%) appear in a FAILED line in CI history — but it is a
-**lower bound on failures, not a measure of worth**: this CI is only days old,
-most runs were already scoped so most tests never ran, and a test that never
-fails because its code is correct is working. **Never cite it as grounds to
-delete a test.**
-
 Before writing any test, answer in one sentence: **what bug does this catch that
 nothing else catches?** No answer → no test. Coverage is a diagnostic, never a
 target.
@@ -71,5 +64,3 @@ target.
 the repository (`rglob`/`os.walk`/`glob`/`iterdir` — lint rules in a test
 costume, 31–96s each, they belong in ruff or a pre-commit hook); tests that
 cannot fail in the environment that runs them (anything that skips in CI).
-
-Full rule and figures: `~/.claude/CLAUDE.md`, section "Testing".
