@@ -960,6 +960,14 @@ def _clip_geometries(geometries: list[BaseGeometry], clip_bbox: BaseGeometry) ->
     return clipped
 
 
+# How sparse a face's land evidence must be, per unit of area and against the
+# densest face on the sheet, before the face is called sea. Measured in
+# HipparchusMac on Miami's waterfront at 1, 2.4 and 6 km: Biscayne Bay came to
+# 0.2-2.2% of the city's density, the other land faces to 44% or more. Kept
+# equal to SceneBuilder.seaDensityShare there.
+SEA_DENSITY_SHARE = 0.1
+
+
 def _derive_sea_polygons(
     layer_geometries: dict[str, list[BaseGeometry]],
     clip_bbox: BaseGeometry,
@@ -985,28 +993,31 @@ def _derive_sea_polygons(
 
     bbox_area = max(float(clip_bbox.area), 1e-12)
     land_evidence = _land_evidence_geometries(layer_geometries)
-    scored: list[tuple[float, Polygon]] = []
+    # (land-evidence density, face); islands are left out of the weighing.
+    weighed: list[tuple[float, Polygon]] = []
     for candidate in candidates:
         clipped = candidate.intersection(clip_bbox)
         if clipped.is_empty or not isinstance(clipped, Polygon):
             continue
         if clipped.area < bbox_area * 0.005:
             continue
-        # Inside a closed coastline is land by definition, whatever stands on it.
+        # Inside a closed coastline is land by definition, whatever stands on it,
+        # so an island is never sea and never breaks a tie between the others.
         point = clipped.representative_point()
         if any(island.covers(point) for island in islands):
-            scored.append((float("inf"), clipped))
             continue
-        scored.append((_land_evidence_score(clipped, land_evidence), clipped))
+        weighed.append((_land_evidence_score(clipped, land_evidence) / clipped.area, clipped))
 
-    if len(scored) < 2:
+    if len(weighed) < 2:
         return []
 
-    lowest = min(score for score, _polygon in scored)
-    sea = [polygon for score, polygon in scored if score <= lowest + 1e-9]
-    if len(sea) == len(scored):
+    # The densest face sets what land looks like on this sheet; a face with a
+    # small share of that is water. The lowest score alone made an empty lagoon
+    # the only sea and left a bay crossed by bridges as land.
+    densest = max(density for density, _polygon in weighed)
+    if densest <= 0:
         return []
-    return sea
+    return [polygon for density, polygon in weighed if density < densest * SEA_DENSITY_SHARE]
 
 
 def _lineal_parts(geometry: BaseGeometry) -> list[BaseGeometry]:
