@@ -966,8 +966,15 @@ def _derive_sea_polygons(
 ) -> list[BaseGeometry]:
     """Infer sea polygons from coastline lines and the AOI bounds."""
     coastline_parts: list[BaseGeometry] = []
+    islands: list[BaseGeometry] = []
     for geometry in layer_geometries.get("coastline", []):
         coastline_parts.extend(_lineal_parts(geometry))
+        # An island's coastline closes into a ring and arrives as a polygon. Its
+        # rings cut the frame like any coast, so the island becomes a face of its
+        # own instead of a patch of sea painted over the land.
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            islands.append(geometry)
+            coastline_parts.append(geometry.boundary)
     if not coastline_parts:
         return []
 
@@ -984,6 +991,11 @@ def _derive_sea_polygons(
         if clipped.is_empty or not isinstance(clipped, Polygon):
             continue
         if clipped.area < bbox_area * 0.005:
+            continue
+        # Inside a closed coastline is land by definition, whatever stands on it.
+        point = clipped.representative_point()
+        if any(island.covers(point) for island in islands):
+            scored.append((float("inf"), clipped))
             continue
         scored.append((_land_evidence_score(clipped, land_evidence), clipped))
 
@@ -1038,7 +1050,13 @@ def _land_evidence_geometries(layer_geometries: dict[str, list[BaseGeometry]]) -
 def _land_evidence_score(candidate: Polygon, land_geometries: list[BaseGeometry]) -> float:
     score = 0.0
     for geometry in land_geometries:
-        if geometry.is_empty or not candidate.intersects(geometry):
+        if geometry.is_empty:
+            continue
+        # A pier, a bridge or a waterfront park crosses the coastline. Counted on
+        # every face it touched, it raised the sea to the land's score, and a
+        # shore busy enough tied them: Biscayne Bay beside Miami's arena came out
+        # as land. A point on the feature itself gives it to exactly one face.
+        if not candidate.covers(geometry.representative_point()):
             continue
         if isinstance(geometry, (LineString, MultiLineString)):
             score += 2.0
