@@ -757,10 +757,20 @@ def _editorial_print_styles() -> dict[str, LayerStyle]:
 
 def _clean_atlas_styles() -> dict[str, LayerStyle]:
     styles = _with_soft_road_caps(_base_styles())
-    styles["roads_motorway"] = LayerStyle(stroke_width=4.8, fill_enabled=False, stroke_color=RGBAColor(232, 127, 88), casing_width=6.2, casing_color=RGBAColor(246, 239, 225), line_cap="round")
-    styles["roads_trunk"] = LayerStyle(stroke_width=4.2, fill_enabled=False, stroke_color=RGBAColor(230, 148, 92), casing_width=5.6, casing_color=RGBAColor(246, 239, 225), line_cap="round")
-    styles["roads_primary"] = LayerStyle(stroke_width=3.6, fill_enabled=False, stroke_color=RGBAColor(226, 166, 102), casing_width=5.0, casing_color=RGBAColor(246, 239, 225), line_cap="round")
-    styles["roads_residential"] = LayerStyle(stroke_width=1.8, fill_enabled=False, stroke_color=RGBAColor(248, 247, 242), casing_width=3.0, casing_color=RGBAColor(197, 193, 183), line_cap="round")
+    # Every road has an edge a whole pixel wide on each side, in a darker shade
+    # of its own colour. The paper-coloured casing `_with_soft_road_caps` gives
+    # was within a few units of the ground and 0.6 px a side, so it drew as
+    # antialiasing haze: an orange road with no edge, bleeding into the land.
+    # Each channel is the road's own times 0.78.
+    styles["roads_motorway"] = LayerStyle(stroke_width=4.8, fill_enabled=False, stroke_color=RGBAColor(232, 127, 88), casing_width=6.8, casing_color=RGBAColor(181, 99, 69), line_cap="round")
+    styles["roads_trunk"] = LayerStyle(stroke_width=4.2, fill_enabled=False, stroke_color=RGBAColor(230, 148, 92), casing_width=6.2, casing_color=RGBAColor(179, 115, 72), line_cap="round")
+    styles["roads_primary"] = LayerStyle(stroke_width=3.6, fill_enabled=False, stroke_color=RGBAColor(226, 166, 102), casing_width=5.6, casing_color=RGBAColor(176, 129, 80), line_cap="round")
+    styles["roads_secondary"] = LayerStyle(stroke_width=3.0, fill_enabled=False, stroke_color=RGBAColor(245, 170, 100), casing_width=5.0, casing_color=RGBAColor(191, 133, 78), line_cap="round")
+    styles["roads_tertiary"] = LayerStyle(stroke_width=2.5, fill_enabled=False, stroke_color=RGBAColor(250, 210, 130), casing_width=4.5, casing_color=RGBAColor(195, 164, 101), line_cap="round")
+    styles["roads_residential"] = LayerStyle(stroke_width=1.8, fill_enabled=False, stroke_color=RGBAColor(248, 247, 242), casing_width=3.8, casing_color=RGBAColor(197, 193, 183), line_cap="round")
+    # A service road is a residential street one size down -- white with a grey
+    # edge -- rather than a flat grey line, which read as a faint scratch.
+    styles["roads_service"] = LayerStyle(stroke_width=1.3, fill_enabled=False, stroke_color=RGBAColor(250, 249, 245), casing_width=2.9, casing_color=RGBAColor(205, 200, 190), line_cap="round")
     styles["buildings"] = LayerStyle(stroke_width=0.45, fill_enabled=True, fill_color=RGBAColor(204, 199, 190), stroke_color=RGBAColor(171, 164, 152), opacity=0.98)
     styles["water"] = LayerStyle(stroke_width=0.25, fill_enabled=True, fill_color=RGBAColor(166, 207, 222), stroke_color=RGBAColor(120, 172, 191), opacity=1.0)
     # Contours in the same brown Terrain Study uses, because the two presets

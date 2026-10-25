@@ -239,6 +239,15 @@ class StreetLabelTests(unittest.TestCase):
         self.assertAlmostEqual(both.y, south_only.y, places=6)
         self.assertNotAlmostEqual(both.y, north_only.y, places=6)
 
+    def test_a_street_name_turns_with_its_street(self) -> None:
+        rising = self._only_street_label(self._roads(("Odos A", [(0.2, 0.2), (0.6, 0.6)])))
+        flat = self._only_street_label(self._roads(("Odos B", [(0.2, 0.5), (0.7, 0.5)])))
+        self.assertAlmostEqual(flat.rotation, 0.0, places=3)
+        # Up and to the right on the map is up and to the right on the canvas:
+        # counter-clockwise, which is negative where angles run clockwise.
+        self.assertLess(rising.rotation, -30.0)
+        self.assertGreater(rising.rotation, -60.0)
+
     def test_unnamed_roads_produce_no_labels(self) -> None:
         collection = self._roads(("", [(0.1, 0.1), (0.4, 0.4)]))
         scene = self._scene_for(collection)

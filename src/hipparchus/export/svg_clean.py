@@ -6,8 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree.ElementTree import Element, ElementTree, SubElement
 
+from hipparchus.application.road_network import draw_turns
 from hipparchus.application.attribution import attributions_for, sources_in, statement_for
 from hipparchus.export.profiles import ExportDiagnostics, SVGExportProfile
+from hipparchus.rendering.label_layout import LabelType, PlacedLabel, lay_out_labels
+from hipparchus.rendering.skia_renderer import BASELINE_SHIFT_EM, DEFAULT_LABEL_SIZE
 from hipparchus.rendering.geometry_adapter import geometry_to_svg_path_data
 from hipparchus.rendering.models import RGBAColor, RenderScene
 from hipparchus.rendering.not_for_navigation import NOTICE
@@ -35,6 +38,9 @@ class CleanSVGExporter:
     """Exports layered vector paths to SVG with clean path commands."""
 
     precision: int = 5
+    #: The label type, the same two settings the canvas reads.
+    label_font_size: int = DEFAULT_LABEL_SIZE
+    label_font_family: str = ""
 
     def export_scene(
         self,
@@ -137,7 +143,39 @@ class CleanSVGExporter:
 
         map_group = SubElement(svg, "g", {"id": "map_layers"})
 
-        for layer in scene.layers:
+        # Labels are placed once over every visible layer, by the same call the
+        # canvas makes. A hidden layer keeps all of its labels: it is written
+        # into the file so it can be switched back on in Illustrator.
+        placed_labels: dict[str, list[PlacedLabel]] = {}
+        font_family = ""
+        if profile.include_labels:
+            label_type = LabelType(self.label_font_size, self.label_font_family)
+            font_family = f"{label_type.face_name}, Arial, Helvetica, sans-serif"
+            identity = transform.apply if transform else (lambda x, y: (x, y))
+            visible = [layer for layer in scene.layers if layer.style.visible]
+            hidden = [layer for layer in scene.layers if not layer.style.visible]
+            for placed in lay_out_labels(
+                visible, scene, label_type, identity, width, height, keep_all=hidden
+            ):
+                placed_labels.setdefault(placed.layer_name, []).append(placed)
+
+        # Turns rather than layers, so a run of road layers writes every casing
+        # before any of its lines. See `application/road_network.py`.
+        for turn in draw_turns(scene.layers):
+            layer = turn.layer
+            if turn.part == "casing":
+                # A group of its own at the top level, under the id a casing
+                # always had, carrying the layer's opacity and visibility.
+                casing_group = SubElement(
+                    map_group, "g",
+                    {"id": f"{_svg_id(layer.name)}_casing", "data-layer-name": layer.name,
+                     "opacity": _fmt_float(layer.style.opacity)},
+                )
+                if not layer.style.visible:
+                    casing_group.set("display", "none")
+                self._write_casing(casing_group, layer, transform)
+                continue
+
             group = SubElement(map_group, "g", {"id": _svg_id(layer.name), "data-layer-name": layer.name, "opacity": _fmt_float(layer.style.opacity)})
             if not layer.style.visible:
                 group.set("display", "none")
@@ -151,26 +189,10 @@ class CleanSVGExporter:
 
             layer_paths = 0
             geometries = list(layer.geometries)
-            if layer.style.casing_width > 0 and geometries:
-                casing_group = SubElement(group, "g", {"id": f"{_svg_id(layer.name)}_casing"})
-                casing_stroke = _color_to_hex(layer.style.casing_color.r, layer.style.casing_color.g, layer.style.casing_color.b)
-                for geometry in geometries:
-                    if transform:
-                        geometry = self._transform_geometry(geometry, transform)
-                    for path_data in geometry_to_svg_path_data(geometry, precision=self.precision):
-                        SubElement(
-                            casing_group,
-                            "path",
-                            {
-                                "d": path_data,
-                                "fill": "none",
-                                "stroke": casing_stroke,
-                                "stroke-width": _fmt_float(layer.style.casing_width),
-                                "vector-effect": "non-scaling-stroke",
-                                "stroke-linejoin": "round",
-                                "stroke-linecap": "round",
-                            },
-                        )
+            if turn.part == "whole" and layer.style.casing_width > 0 and geometries:
+                self._write_casing(
+                    SubElement(group, "g", {"id": f"{_svg_id(layer.name)}_casing"}), layer, transform
+                )
             for geometry_index, geometry in enumerate(layer.geometries):
                 # Transform geometry coordinates if needed
                 if transform:
@@ -208,30 +230,30 @@ class CleanSVGExporter:
             if profile.include_labels and layer.labels:
                 label_group = SubElement(group, "g", {"id": f"{_svg_id(layer.name)}_labels"})
                 label_count = 0
-                for label in layer.labels:
-                    x, y = (label.x, label.y)
-                    if transform:
-                        x, y = transform.apply(label.x, label.y)
+                for placed in placed_labels.get(layer.name, ()):
                     attrs = {
-                        "x": _fmt_float(x),
-                        "y": _fmt_float(y),
-                        "font-family": "Arial, Helvetica, sans-serif",
-                        "font-size": "12",
+                        "x": _fmt_float(placed.x),
+                        "y": _fmt_float(placed.y + placed.size * BASELINE_SHIFT_EM),
+                        "font-family": font_family,
+                        "font-size": _fmt_float(placed.size),
                         "text-anchor": "middle",
-                        "dominant-baseline": "central",
                     }
-                    halo = SubElement(label_group, "text", attrs | {
-                        "fill": _color_to_hex(layer.style.label_halo_color.r, layer.style.label_halo_color.g, layer.style.label_halo_color.b),
-                        "stroke": _color_to_hex(layer.style.label_halo_color.r, layer.style.label_halo_color.g, layer.style.label_halo_color.b),
-                        "stroke-width": _fmt_float(layer.style.label_halo_width),
-                        "stroke-linejoin": "round",
-                    })
-                    halo.text = label.name
+                    if placed.rotation:
+                        attrs["transform"] = f"rotate({_fmt_float(placed.rotation)} {_fmt_float(placed.x)} {_fmt_float(placed.y)})"
+                    halo_colour = _color_to_hex(layer.style.label_halo_color.r, layer.style.label_halo_color.g, layer.style.label_halo_color.b)
+                    if placed.halo > 0.0:
+                        halo = SubElement(label_group, "text", attrs | {
+                            "fill": halo_colour,
+                            "stroke": halo_colour,
+                            "stroke-width": _fmt_float(placed.halo),
+                            "stroke-linejoin": "round",
+                        })
+                        halo.text = placed.text
                     text = SubElement(label_group, "text", attrs | {
                         "fill": _color_to_hex(layer.style.stroke_color.r, layer.style.stroke_color.g, layer.style.stroke_color.b),
                         "stroke": "none",
                     })
-                    text.text = label.name
+                    text.text = placed.text
                     label_count += 1
                 diagnostics.layer_label_counts[layer.name] = label_count
 
@@ -240,6 +262,26 @@ class CleanSVGExporter:
         destination.parent.mkdir(parents=True, exist_ok=True)
         ElementTree(svg).write(destination, encoding="utf-8", xml_declaration=True)
         return diagnostics
+
+    def _write_casing(self, casing_group: Element, layer, transform: "_Transform | None") -> None:
+        casing_stroke = _color_to_hex(layer.style.casing_color.r, layer.style.casing_color.g, layer.style.casing_color.b)
+        for geometry in layer.geometries:
+            if transform:
+                geometry = self._transform_geometry(geometry, transform)
+            for path_data in geometry_to_svg_path_data(geometry, precision=self.precision):
+                SubElement(
+                    casing_group,
+                    "path",
+                    {
+                        "d": path_data,
+                        "fill": "none",
+                        "stroke": casing_stroke,
+                        "stroke-width": _fmt_float(layer.style.casing_width),
+                        "vector-effect": "non-scaling-stroke",
+                        "stroke-linejoin": "round",
+                        "stroke-linecap": "round",
+                    },
+                )
 
     def _add_composition_furniture(
         self,

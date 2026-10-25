@@ -16,6 +16,11 @@ from hipparchus.rendering.models import RGBAColor, RenderScene, ViewportState
 from hipparchus.rendering.not_for_navigation import NOTICE
 from hipparchus.rendering.not_for_navigation import applies as not_for_navigation_applies
 
+# The type size, and where a label sits on its anchor, are one statement shared
+# with the SVG writer. Plain constants: the application package imports this one.
+DEFAULT_LABEL_SIZE = 10
+BASELINE_SHIFT_EM = 0.35
+
 _PERF_LOGGER = logging.getLogger("hipparchus.perf")
 
 
@@ -210,7 +215,7 @@ class SkiaRenderer:
     edge_to_edge: bool = field(default=False, init=False, repr=False)
     _lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
     _last_drawn_paths: int = field(default=0, init=False, repr=False)
-    _label_font_size: int = field(default=10, init=False, repr=False)
+    _label_font_size: int = field(default=DEFAULT_LABEL_SIZE, init=False, repr=False)
     # Empty means the default Latin face. Public so the UI can read it back.
     label_font_family: str = field(default="", init=False)
     _last_render_diagnostics: dict[str, object] = field(default_factory=dict, init=False, repr=False)
@@ -496,8 +501,15 @@ class SkiaRenderer:
         # Debug: log first layer's stroke color
         _first_layer = True
 
-        for layer in self.scene.iter_visible_layers():
-            if sampled and remaining_budget <= 0:
+        # Turns rather than layers, so a run of road layers lays every casing
+        # down before any of its lines. See `application/road_network.py`.
+        # Imported here: the application package imports this one.
+        from hipparchus.application.road_network import draw_turns
+
+        selections: dict[int, list[Any]] = {}
+        for turn in draw_turns(list(self.scene.iter_visible_layers())):
+            layer = turn.layer
+            if sampled and remaining_budget <= 0 and id(layer) not in selections:
                 break
             # Opacity belongs to the layer, not to each part of it, so it is
             # applied once by compositing the whole layer as a group below
@@ -559,7 +571,10 @@ class SkiaRenderer:
             # so a thinned preview never draws a line at another line's weight.
             weighted = bool(layer.weights)
             indexed = list(enumerate(layer.geometries))
-            if sampled:
+            if id(layer) in selections:
+                # The casing turn already chose what to draw of this layer.
+                selected_pairs = selections[id(layer)]
+            elif sampled:
                 selected_pairs = self._sample_layer_geometries(
                     layer_name=layer.name,
                     geometries=indexed,
@@ -568,6 +583,7 @@ class SkiaRenderer:
                 remaining_budget -= len(selected_pairs)
             else:
                 selected_pairs = indexed
+            selections[id(layer)] = selected_pairs
             selected = [geometry for _index, geometry in selected_pairs]
 
             # One paint per distinct weight, not per geometry: weights are
@@ -621,7 +637,7 @@ class SkiaRenderer:
                 canvas.saveLayerAlpha(None, round(alpha * 255))
 
             # First pass: draw all casings (so they appear underneath all fills)
-            if casing_paint is not None:
+            if casing_paint is not None and turn.part != "body":
                 for geometry in selected:
                     for atomic in iter_atomic_geometries(geometry):
                         if isinstance(atomic, (LineString, LinearRing)):
@@ -630,7 +646,7 @@ class SkiaRenderer:
                                 canvas.drawPath(path, casing_paint)
 
             # Second pass: draw fills and strokes
-            for index, geometry in selected_pairs:
+            for index, geometry in (selected_pairs if turn.part != "casing" else ()):
                 paint = _stroke_paint_for(layer.weight_at(index)) if weighted else stroke_paint
                 for atomic in iter_atomic_geometries(geometry):
                     path = self._path_for_geometry(atomic, skia)
@@ -669,105 +685,55 @@ class SkiaRenderer:
         """Draw place/shop/amenity labels at fixed pixel size.
 
         Labels are drawn in a separate pass (not inside the cached Picture) so
-        they are immune to viewport zoom — they always render at the configured
-        font size in screen pixels.
+        they are immune to viewport zoom -- they always render at the configured
+        font size in screen pixels, scaled with the sheet (`scene.label_scale`).
+        Which labels survive is decided over every visible layer at once by
+        `lay_out_labels`, the same call the SVG writer makes.
         """
-        from hipparchus.rendering.models import PlaceLabel
+        from hipparchus.rendering.label_layout import LabelType, lay_out_labels
 
         if self._scene_bounds is None:
             return
 
-        font_size = max(6, min(getattr(self, '_label_font_size', 10), 16))
-
-        # The picked family, falling back to the Latin face when nothing is
-        # requested or the system does not have it. Resolving it here rather
-        # than handing Skia a None matters twice: Skia deprecated its implicit
-        # default font and warns once per call, and `_typeface_for_text` already
-        # judges coverage against `_default_typeface()` — so drawing with
-        # anything else meant deciding fallbacks against a face we were not
-        # using. Still None only on a system with no matchable font at all.
-        base_typeface = _family_typeface(self.label_font_family) or _default_typeface()
-
         try:
-            font = skia.Font(base_typeface, font_size)
-        except Exception:
+            label_type = LabelType(getattr(self, "_label_font_size", DEFAULT_LABEL_SIZE), self.label_font_family)
+        except Exception:  # noqa: BLE001 - no usable font on this system
             return
 
-        # Reuse one Font per typeface so non-Latin labels do not allocate a new
-        # one per draw. Keyed by family name; None is the base face.
-        font_cache: dict[str | None, Any] = {None: font}
+        def _to_screen(wx: float, wy: float) -> tuple[float, float] | None:
+            return self.world_to_screen(wx, wy, width, height)
 
-        def _font_for(text: str) -> Any:
-            typeface = _typeface_for_text(text, base=base_typeface)
-            if typeface is None:
-                return font
-            family = typeface.getFamilyName()
-            cached = font_cache.get(family)
-            if cached is None:
-                try:
-                    cached = skia.Font(typeface, font_size)
-                except Exception:  # noqa: BLE001 - keep drawing with the default
-                    cached = font
-                font_cache[family] = cached
-            return cached
-
-        pad = 2.0
-
-        # One shared transform for labels and geometry, so a rotated map no
-        # longer leaves its labels behind where the geometry used to be.
-        def _world_to_screen(wx: float, wy: float) -> tuple[float, float]:
-            placed = self.world_to_screen(wx, wy, width, height)
-            return placed if placed is not None else (0.0, 0.0)
-
-        # Collect labels with their screen positions, then cull off-screen and
-        # suppress overlapping labels so the map stays readable at every zoom.
-        entries: list[tuple[float, float, str, Any]] = []
-        for layer in self.scene.iter_visible_layers():
-            if not layer.labels:
-                continue
-            for label in layer.labels:
-                if not isinstance(label, PlaceLabel) or not label.name:
-                    continue
-                sx, sy = _world_to_screen(float(label.x), float(label.y))
-                # Cull labels that are off-screen.
-                if sx < -100 or sx > width + 100 or sy < -100 or sy > height + 100:
-                    continue
-                entries.append((sx, sy, str(label.name), layer.style))
-
-        # Simple overlap suppression: reject any label whose centre is too
-        # close to an already-placed label.
-        min_gap_y = font_size * 1.6
-        placed: list[tuple[float, float, float]] = []  # (cx, cy, half_w)
-
-        for sx, sy, text, style in entries:
-            text_font = _font_for(text)
-            tw = text_font.measureText(text)
-            half_w = tw / 2.0
-            # Check overlap with already-placed labels.
-            collides = False
-            for px, py, phw in placed:
-                if abs(sx - px) < (half_w + phw + pad * 2) and abs(sy - py) < min_gap_y:
-                    collides = True
-                    break
-            if collides:
-                continue
-            placed.append((sx, sy, half_w))
-
-            halo_color = style.label_halo_color
+        placed = lay_out_labels(
+            list(self.scene.iter_visible_layers()), self.scene, label_type, _to_screen,
+            width, height, extra_rotation=self.viewport.rotation,
+        )
+        layer_styles = {layer.name: layer.style for layer in self.scene.layers}
+        for label in placed:
+            style = layer_styles[label.layer_name]
+            font = label_type.font(label.text, label.size)
             text_color = style.stroke_color
-            halo_paint = skia.Paint(
-                AntiAlias=True,
-                Style=skia.Paint.kStroke_Style,
-                StrokeWidth=max(1.0, style.label_halo_width),
-                Color=skia.ColorSetARGB(halo_color.a, halo_color.r, halo_color.g, halo_color.b),
-            )
             text_paint = skia.Paint(
                 AntiAlias=True,
                 Style=skia.Paint.kFill_Style,
                 Color=skia.ColorSetARGB(255, text_color.r, text_color.g, text_color.b),
             )
-            canvas.drawString(text, sx - half_w, sy - 2, text_font, halo_paint)
-            canvas.drawString(text, sx - half_w, sy - 2, text_font, text_paint)
+            baseline = label.y + label.size * BASELINE_SHIFT_EM
+            left = label.x - label.width / 2.0
+            canvas.save()
+            if label.rotation:
+                canvas.rotate(label.rotation, label.x, label.y)
+            if label.halo > 0.0:
+                halo_color = style.label_halo_color
+                halo_paint = skia.Paint(
+                    AntiAlias=True,
+                    Style=skia.Paint.kStroke_Style,
+                    StrokeWidth=label.halo,
+                    Color=skia.ColorSetARGB(halo_color.a, halo_color.r, halo_color.g, halo_color.b),
+                )
+                halo_paint.setStrokeJoin(skia.Paint.kRound_Join)
+                canvas.drawString(label.text, left, baseline, font, halo_paint)
+            canvas.drawString(label.text, left, baseline, font, text_paint)
+            canvas.restore()
 
     def _path_for_geometry(self, geometry: Any, skia: Any) -> Any | None:
         key = id(geometry)
