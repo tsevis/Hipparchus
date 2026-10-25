@@ -65,6 +65,8 @@ class PlaceLabel:
     x: float
     y: float
     place_type: str = ""  # city, town, village, etc.
+    #: Degrees clockwise on the canvas, for a name set along its street.
+    rotation: float = 0.0
 
 
 @dataclass(slots=True)
@@ -133,6 +135,10 @@ class RenderScene:
     # canvas can be turned back into longitude and latitude without guessing
     # which projection produced the picture.
     projection: object | None = None
+    #: How much larger label type and halos draw than the preset states. 1 for
+    #: the window; a bigger sheet sets it with its line weights so the type
+    #: keeps its proportion to the roads it names.
+    label_scale: float = 1.0
     metadata: dict[str, object] = field(default_factory=dict)
     diagnostics: dict[str, object] = field(default_factory=dict)
 

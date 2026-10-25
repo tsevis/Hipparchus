@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Protocol
 
 from hipparchus.application.line_weight import scale_line_weights
+from hipparchus.application.sheet_scale import scaled_for_sheet
 from hipparchus.export.profiles import ExportDiagnostics, SVGExportProfile
 from hipparchus.export.svg_clean import CleanSVGExporter
 from hipparchus.rendering.models import RenderScene
@@ -39,7 +40,7 @@ class SVGExporter:
         precision = profile.precision
         if precision is None:
             precision = 6 if profile.mode == "print" else 4
-        scene = scale_line_weights(self.scene, self.line_weight)
+        scene = scaled_for_sheet(scale_line_weights(self.scene, self.line_weight), self.width, self.height)
         diagnostics = CleanSVGExporter(precision=precision).export_scene(
             scene,
             destination,
@@ -86,7 +87,11 @@ class PDFExporter:
     line_weight: float = 1.0
 
     def export(self, destination: Path) -> None:
-        scene = scale_line_weights(self.scene, self.line_weight) if self.scene is not None else None
+        scene = (
+            scaled_for_sheet(scale_line_weights(self.scene, self.line_weight), self.width, self.height)
+            if self.scene is not None
+            else None
+        )
         renderer = _renderer_for(scene)
         renderer.render_pdf(
             destination, self.width, self.height, page_size=self.page_size
@@ -112,7 +117,11 @@ class PNGExporter:
     line_weight: float = 1.0
 
     def export(self, destination: Path) -> None:
-        scene = scale_line_weights(self.scene, self.line_weight) if self.scene is not None else None
+        scene = (
+            scaled_for_sheet(scale_line_weights(self.scene, self.line_weight), self.width, self.height)
+            if self.scene is not None
+            else None
+        )
         renderer = _renderer_for(scene)
         data = renderer.render_png(self.width, self.height, scale=self.scale)
         if not data:

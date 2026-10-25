@@ -23,6 +23,7 @@ from tkinter import ttk
 
 from hipparchus.application.line_weight import MAX_LINE_WEIGHT, MIN_LINE_WEIGHT
 from hipparchus.application.page_size import PageSpec, PaperSize, Resolution
+from hipparchus.application.sheet_scale import REFERENCE_HEIGHT, REFERENCE_WIDTH
 from hipparchus.export.profiles import MapComposition
 from hipparchus.ui import theme, tooltip
 from hipparchus.ui.disclosure import Disclosure
@@ -218,8 +219,8 @@ class PagePanelMixin:
         shape can. The margin and the shape go together, which is why this
         also tells the renderer to bleed.
         """
-        width = max(1024, self._canvas.winfo_width())
-        height = max(1024, self._canvas.winfo_height())
+        width = max(REFERENCE_WIDTH, self._canvas.winfo_width())
+        height = max(REFERENCE_HEIGHT, self._canvas.winfo_height())
 
         bleed = bool(self._edge_to_edge_var.get())
         renderer = getattr(self, "renderer", None)
