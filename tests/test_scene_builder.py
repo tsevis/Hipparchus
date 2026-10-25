@@ -331,6 +331,12 @@ class EveryKnownLayerIsRankedTests(unittest.TestCase):
         unknown = sorted(set(PREFERRED_LAYER_ORDER) - self.known_layers() - roads)
         self.assertEqual(unknown, [], f"ranked but unknown to the inventory: {unknown}")
 
+    def test_finer_borders_draw_under_coarser_ones(self) -> None:
+        """The heaviest line must be the last ink on an edge the three share."""
+        rank = PREFERRED_LAYER_ORDER.index
+        self.assertLess(rank("county_boundaries"), rank("state_boundaries"))
+        self.assertLess(rank("state_boundaries"), rank("admin_boundaries"))
+
     def test_no_layer_is_ranked_twice(self) -> None:
         self.assertEqual(len(PREFERRED_LAYER_ORDER), len(set(PREFERRED_LAYER_ORDER)))
 

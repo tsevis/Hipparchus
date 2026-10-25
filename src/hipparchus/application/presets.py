@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 
 from hipparchus.application.derived_styles import (
     derived_admin_boundaries as derived_admin_boundaries,
+    derived_county_boundaries as derived_county_boundaries,
+    derived_state_boundaries as derived_state_boundaries,
 )
 from hipparchus.application.derived_styles import (
     derived_contour_style as derived_contour_style,
@@ -221,6 +223,10 @@ def resolve_style(profile: StyleProfile, layer_name: str) -> LayerStyle:
         return derived_hillshade(profile)
     if layer_name == "admin_boundaries":
         return derived_admin_boundaries(profile)
+    if layer_name == "state_boundaries":
+        return derived_state_boundaries(profile)
+    if layer_name == "county_boundaries":
+        return derived_county_boundaries(profile)
     derived = derived_contour_style(profile, layer_name)
     if derived is not None:
         return derived

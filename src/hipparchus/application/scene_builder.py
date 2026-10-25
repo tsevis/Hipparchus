@@ -854,7 +854,11 @@ PREFERRED_LAYER_ORDER: tuple[str, ...] = (
     # Transport
     "railways",
     "ferry_routes",
-    # A border draws above the network it usually follows, below every label.
+    # A border draws above the network it usually follows, below every label;
+    # the finer levels first, so the heaviest line is the last ink on an edge
+    # they share.
+    "county_boundaries",
+    "state_boundaries",
     "admin_boundaries",
     # Orbital geometry floats above the ground it passes over.
     "satellite_footprints",

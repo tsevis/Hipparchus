@@ -639,6 +639,8 @@ def _legend_label(layer_name: str) -> str:
         "elevation_bands": "Elevation Bands (hypsometric)",
         "night_lights": "Night Lights",
         "admin_boundaries": "Admin Boundaries",
+        "state_boundaries": "State Boundaries",
+        "county_boundaries": "County Boundaries",
         "earthquakes_shallow": "Earthquakes (shallow)",
         "earthquakes_intermediate": "Earthquakes (intermediate)",
         "earthquakes_deep": "Earthquakes (deep)",

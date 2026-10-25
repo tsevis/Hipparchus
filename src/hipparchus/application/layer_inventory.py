@@ -96,6 +96,8 @@ LAYER_LABELS: dict[str, str] = {
     "landuse": "Land use",
     "coastline": "Coastline / sea",
     "admin_boundaries": "Admin boundaries",
+    "state_boundaries": "State boundaries",
+    "county_boundaries": "County boundaries",
     "ferry_routes": "Ferry routes",
     "roads": "Roads",
     "roads_motorway": "Motorways",
@@ -147,6 +149,8 @@ _GROUPS: dict[str, str] = {
     # A border partitions land; it is measured geography, not invented
     # geometry, and must not fall into the "Derived" fallback.
     "admin_boundaries": "Water & land",
+    "state_boundaries": "Water & land",
+    "county_boundaries": "Water & land",
     "water": "Water & land",
     "parks": "Water & land",
     "forests": "Water & land",
