@@ -2,6 +2,25 @@
 
 Notable changes to Hipparchus. Earlier history is in the git log.
 
+## 0.9.1
+
+Roads and labels, ported from the macOS fork where the same defects were found
+and fixed.
+
+- **Junctions.** Roads draw minor to major, casings before lines, in both the
+  PNG and the SVG, so a road runs unbroken through every junction.
+- **Clean Atlas road edges.** One pixel per side, in a darker shade of each
+  road's own colour; service roads are white with a grey casing.
+- **Sheets scale.** Line weights, label size and halo grow with the export by
+  `max(1, sqrt(w*h / 1024*1024))`, so a large sheet keeps the proportions of the
+  canvas. `PNGExporter` and `SVGExporter` called with their default sizes now
+  scale too.
+- **One label style.** PNG and SVG use the same size, face and halo width.
+- **Labels no longer overlap.** One placement function measures each label,
+  rotates street names with their street, tests overlap exactly, keeps the
+  higher-ranked label and drops those cut by the canvas edge. The SVG keeps the
+  labels of hidden layers.
+
 ## 0.9.0
 
 0.6.0 gave the sea marks and the depth bands a style on every preset rather than

@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/tsevis/Hipparchus/actions/workflows/tests.yml/badge.svg)](https://github.com/tsevis/Hipparchus/actions/workflows/tests.yml)
 
-**Version 0.9.0**
+**Version 0.9.1**
 
 **Hipparchus is an online desktop vector cartography app for creating clean, editable maps from OpenStreetMap data and exporting them as Illustrator-friendly SVG files.**
 
