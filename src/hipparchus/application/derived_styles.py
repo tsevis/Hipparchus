@@ -26,6 +26,7 @@ The profile is duck-typed rather than imported: ``StyleProfile`` lives in
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from hipparchus.application.palettes import mix
@@ -335,3 +336,19 @@ def derived_admin_boundaries(profile: StyleProfile) -> LayerStyle:
         stroke_color=mix(land, ink, 0.15),
         opacity=0.55,
     )
+
+
+def derived_state_boundaries(profile: StyleProfile) -> LayerStyle:
+    """A state line: the country border's colour at a lighter weight, so the
+    two read as one family and the country still reads first."""
+    return replace(derived_admin_boundaries(profile), stroke_width=0.5, opacity=0.5)
+
+
+def derived_county_boundaries(profile: StyleProfile) -> LayerStyle:
+    """A county line, the finest of the three.
+
+    A sheet of the United States carries three thousand of them, so it has to
+    stay a texture under the coast and the state lines rather than a net drawn
+    over them.
+    """
+    return replace(derived_admin_boundaries(profile), stroke_width=0.25, opacity=0.4)

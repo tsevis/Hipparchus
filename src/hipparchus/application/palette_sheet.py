@@ -277,6 +277,12 @@ def style_profile(palette: Palette) -> StyleProfile:
     styles["admin_boundaries"] = _style(
         stroke=0.8, stroke_color=mix(land, ink, 0.15), opacity=0.55
     )
+    styles["state_boundaries"] = _style(
+        stroke=0.5, stroke_color=mix(land, ink, 0.15), opacity=0.5
+    )
+    styles["county_boundaries"] = _style(
+        stroke=0.25, stroke_color=mix(land, ink, 0.15), opacity=0.4
+    )
     styles["night_lights"] = _style(fill=TURQUOISE, fill_alpha=90, opacity=0.5)
     styles["places"] = _style(stroke_color=ink, halo=ground)
     styles["street_names"] = _style(stroke_color=mix(ink, ground, 0.25), halo=ground)

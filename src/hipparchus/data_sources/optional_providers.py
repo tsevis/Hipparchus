@@ -27,6 +27,8 @@ from hipparchus.data_sources.provider import BBoxQuery, FeatureCollection, GeoJS
 
 EXTRA_LAYERS = (
     "admin_boundaries",
+    "state_boundaries",
+    "county_boundaries",
     "terrain_contours",
     "terrain_index_contours",
     "terrain_hillshade",
@@ -716,6 +718,9 @@ def _layer_for_properties(properties: dict[str, Any], *, provider_id: str, geome
         layer = str(explicit)
         if layer in ALL_OPTIONAL_LAYERS:
             return layer
+    subdivision = _subdivision_layer(properties)
+    if subdivision is not None:
+        return subdivision
     if provider_id == "terrain_dem":
         return "terrain_contours" if geometry.geom_type in {"LineString", "MultiLineString"} else "elevation_bands"
     if provider_id == "natural_earth":
@@ -749,6 +754,31 @@ def _layer_for_properties(properties: dict[str, Any], *, provider_id: str, geome
         if "place" in overture_type:
             return "places"
     return _classify_layer(properties)
+
+
+def _subdivision_layer(properties: dict[str, Any]) -> str | None:
+    """A state or a county, recognised before anything that would file it as a country.
+
+    Natural Earth names the level in `featurecla` ("Admin-1 states provinces",
+    "Admin-2 ..."), and its admin-1 rows also carry `admin`, the country's name,
+    which is what the country rule keys on. The US Census cartographic boundary
+    files carry no class at all, only their FIPS columns: a county has
+    `COUNTYFP`, a state `STATEFP` and `STUSPS` without one. Any source may hold
+    either, so this does not ask which provider it is.
+    """
+    feature_class = str(_property_value(properties, "featurecla") or "").lower()
+    if feature_class.startswith("admin-2"):
+        return "county_boundaries"
+    if feature_class.startswith("admin-1"):
+        return "state_boundaries"
+    # A tract or block group carries `COUNTYFP` as well, and is not a county.
+    if _property_value(properties, "TRACTCE") or _property_value(properties, "BLKGRPCE"):
+        return None
+    if _property_value(properties, "COUNTYFP"):
+        return "county_boundaries"
+    if _property_value(properties, "STATEFP") and _property_value(properties, "STUSPS"):
+        return "state_boundaries"
+    return None
 
 
 #: Spellings for a name, in order of preference, matched case-insensitively.

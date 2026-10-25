@@ -241,6 +241,17 @@ class AdminBoundaryTests(unittest.TestCase):
         self.assertLess(style.opacity, 1.0)
         self.assertLessEqual(style.stroke_width, 1.0)
 
+    def test_borders_thin_from_country_to_state_to_county(self) -> None:
+        """The weight is how a reader tells the three apart where they share an edge."""
+        profile = _profile()
+        country = resolve_style(profile, "admin_boundaries")
+        state = resolve_style(profile, "state_boundaries")
+        county = resolve_style(profile, "county_boundaries")
+        self.assertGreater(country.stroke_width, state.stroke_width)
+        self.assertGreater(state.stroke_width, county.stroke_width)
+        self.assertFalse(state.fill_enabled)
+        self.assertFalse(county.fill_enabled)
+
 
 def _known_gaps() -> set[str]:
     """Layers still reaching the shared default, with the reason for each.
