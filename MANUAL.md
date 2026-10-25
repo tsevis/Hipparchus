@@ -1,6 +1,6 @@
 # Hipparchus Manual
 
-**Version 0.9.0**
+**Version 0.9.1**
 
 This manual explains how to use Hipparchus as an online map creation app. It covers installation, launching, fetching map data, working with layers and presets, exporting SVG files, and solving common problems. It applies to macOS, Linux, and Windows.
 
