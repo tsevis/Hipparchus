@@ -8,7 +8,8 @@ from pathlib import Path
 import tempfile
 
 from hipparchus.application.presets import default_preset, preset_names
-from hipparchus.application.scene_builder import RenderSceneBuilder, _ordered_layers
+from hipparchus.application.scene_builder import RenderSceneBuilder
+from hipparchus.application.scene_layer_order import _ordered_layers
 from shapely.geometry import LineString
 
 from hipparchus.data_sources.provider import BBoxQuery, FeatureCollection

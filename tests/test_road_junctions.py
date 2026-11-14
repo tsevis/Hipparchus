@@ -7,7 +7,7 @@ import unittest
 
 from shapely.geometry import LineString
 
-from hipparchus.application.scene_builder import _ordered_layers
+from hipparchus.application.scene_layer_order import _ordered_layers
 from hipparchus.rendering.models import LayerStyle, RGBAColor, RenderLayer, RenderScene
 from hipparchus.rendering.skia_renderer import SkiaRenderer
 

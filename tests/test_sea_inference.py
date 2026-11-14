@@ -10,7 +10,7 @@ import unittest
 
 from shapely.geometry import LineString, Point, Polygon, box
 
-from hipparchus.application.scene_builder import _derive_sea_polygons
+from hipparchus.application.scene_sea import _derive_sea_polygons
 
 FRAME = box(0.0, 0.0, 1.0, 1.0)
 # A coast running north-south through the middle of the frame.

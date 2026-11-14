@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from hipparchus.application.presets import _clean_atlas_styles, _soft_urban_styles
+from hipparchus.application.preset_styles import _clean_atlas_styles, _soft_urban_styles
 from hipparchus.rendering.models import RGBAColor
 
 CLASSED = ("roads_motorway", "roads_trunk", "roads_primary", "roads_secondary", "roads_tertiary")

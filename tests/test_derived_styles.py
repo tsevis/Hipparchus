@@ -288,7 +288,7 @@ class OSMStandardKeepsItsOwnStyleTests(unittest.TestCase):
     """
 
     def test_every_layer_osm_standard_states_survives_unchanged(self) -> None:
-        from hipparchus.application.presets import _osm_standard_overrides, _osm_standard_styles
+        from hipparchus.application.preset_styles import _osm_standard_overrides, _osm_standard_styles
 
         stated = _osm_standard_overrides()
         resolved = _osm_standard_styles()
@@ -297,7 +297,7 @@ class OSMStandardKeepsItsOwnStyleTests(unittest.TestCase):
                 self.assertEqual(resolved[layer], style)
 
     def test_the_base_fills_in_what_it_never_stated(self) -> None:
-        from hipparchus.application.presets import _osm_standard_overrides, _osm_standard_styles
+        from hipparchus.application.preset_styles import _osm_standard_overrides, _osm_standard_styles
 
         gained = set(_osm_standard_styles()) - set(_osm_standard_overrides())
         self.assertIn("elevation_bands", gained)
