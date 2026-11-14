@@ -6,9 +6,10 @@ from dataclasses import dataclass
 import math
 from typing import Literal
 
+import numpy as np
+import shapely
 from shapely.geometry import box
 from shapely.geometry.base import BaseGeometry
-from shapely.ops import transform
 
 from hipparchus.geometry import equal_earth
 from hipparchus.geometry.densify import densified
@@ -190,14 +191,11 @@ class ProjectionProfile:
             # without this.
             geometry = densified(geometry)
 
-        def _project(x, y, z=None):
-            try:
-                projected = [self.project_point(float(px), float(py)) for px, py in zip(x, y)]
-            except TypeError:
-                return self.project_point(float(x), float(y))
-            return ([point[0] for point in projected], [point[1] for point in projected])
+        def _project(coords: np.ndarray) -> np.ndarray:
+            projected = [self.project_point(float(x), float(y)) for x, y in coords]
+            return np.array(projected, dtype=float).reshape(-1, 2)
 
-        return transform(_project, geometry)
+        return shapely.transform(geometry, _project)
 
     def project_bbox(self, bbox: tuple[float, float, float, float] | None) -> tuple[float, float, float, float] | None:
         if bbox is None:

@@ -32,10 +32,11 @@ import math
 from pathlib import Path
 import re
 
+import numpy as np
+import shapely
 from shapely.geometry import mapping
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import orient
-from shapely.ops import transform
 
 from hipparchus.application.attribution import sources_in, statement_for
 from hipparchus.rendering.models import LayerStyle, RGBAColor, RenderLayer, RenderScene
@@ -255,8 +256,12 @@ class GeoJSONExporter:
                 lon, lat = unproject(x, y)
                 return (round(lon, places), round(lat, places))
 
+        def _to_ground(coords: np.ndarray) -> np.ndarray:
+            ground_coords = [to_ground(float(x), float(y)) for x, y in coords]
+            return np.array(ground_coords, dtype=float).reshape(-1, 2)
+
         try:
-            ground = transform(lambda x, y, z=None: to_ground(x, y), geometry)
+            ground = shapely.transform(geometry, _to_ground)
         except (ValueError, TypeError, OverflowError):
             return None
         if ground.is_empty or not _all_finite(ground):
