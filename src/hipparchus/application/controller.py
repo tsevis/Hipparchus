@@ -115,8 +115,10 @@ class ApplicationController:
                     try:
                         self.renderer.set_scene(self._last_scene)
                         on_scene(self._last_scene, "fallback")
-                    except Exception:
-                        pass
+                    except Exception:  # noqa: BLE001
+                        # The first error is the one worth reporting, so this
+                        # one is recorded rather than raised over it.
+                        _LOGGER.exception("request=%s could not restore the previous scene", version)
                 on_error(exc)
 
         threading.Thread(target=_worker, daemon=True).start()

@@ -5,9 +5,9 @@ import unittest
 
 from hipparchus.application.layer_inventory import LAYER_LABELS, _GROUPS
 from hipparchus.application.presets import GeometryPipelineProfile, StyleProfile, default_preset
-from hipparchus.application.scene_builder import (
+from hipparchus.application.scene_builder import RenderSceneBuilder
+from hipparchus.application.scene_layer_order import (
     PREFERRED_LAYER_ORDER,
-    RenderSceneBuilder,
     _ordered_layers,
     _raise_relief_over_the_built_environment,
 )

@@ -9,10 +9,10 @@ from __future__ import annotations
 import unittest
 
 from hipparchus.core.settings_store import UserSettings, clamp
-from hipparchus.rendering import skia_renderer
+from hipparchus.rendering import skia_fonts
 
 try:
-    skia_renderer._import_skia()
+    skia_fonts._import_skia()
     _HAVE_SKIA = True
 except Exception:  # noqa: BLE001 - the renderer degrades; the tests skip
     _HAVE_SKIA = False
@@ -21,25 +21,25 @@ except Exception:  # noqa: BLE001 - the renderer degrades; the tests skip
 @unittest.skipUnless(_HAVE_SKIA, "skia-python not installed")
 class BundledFontTests(unittest.TestCase):
     def test_noto_sans_is_bundled_and_loads(self) -> None:
-        typeface = skia_renderer._bundled_typeface("Noto Sans")
+        typeface = skia_fonts._bundled_typeface("Noto Sans")
         self.assertIsNotNone(typeface)
         self.assertEqual(typeface.getFamilyName(), "Noto Sans")
 
     def test_an_unshipped_family_is_not_bundled(self) -> None:
-        self.assertIsNone(skia_renderer._bundled_typeface("Definitely Not A Font"))
+        self.assertIsNone(skia_fonts._bundled_typeface("Definitely Not A Font"))
 
     def test_the_default_face_is_the_bundled_one(self) -> None:
-        typeface = skia_renderer._default_typeface()
+        typeface = skia_fonts._default_typeface()
         self.assertIsNotNone(typeface)
         self.assertEqual(typeface.getFamilyName(), "Noto Sans")
 
     def test_the_bundled_face_covers_latin_greek_and_cyrillic(self) -> None:
-        typeface = skia_renderer._bundled_typeface("Noto Sans")
+        typeface = skia_fonts._bundled_typeface("Noto Sans")
         for char in "AΩЯ":
             self.assertNotEqual(typeface.unicharToGlyph(ord(char)), 0, f"missing {char!r}")
 
     def test_available_families_include_the_bundled_default(self) -> None:
-        self.assertIn("Noto Sans", skia_renderer.available_font_families())
+        self.assertIn("Noto Sans", skia_fonts.available_font_families())
 
 
 class SettingsFontDefaultTests(unittest.TestCase):

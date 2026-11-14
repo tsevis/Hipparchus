@@ -11,7 +11,7 @@ try:
 except Exception:  # noqa: BLE001
     SKIA_AVAILABLE = False
 
-from hipparchus.rendering.skia_renderer import _family_typeface, _typeface_for_text
+from hipparchus.rendering.skia_fonts import _family_typeface, _typeface_for_text
 
 # The families offered by the Label Settings combobox.
 OFFERED_FAMILIES = ("Arial", "Helvetica", "Times", "Courier", "Verdana")

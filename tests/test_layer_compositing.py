@@ -29,7 +29,7 @@ from shapely.geometry import (
     box,
 )
 
-from hipparchus.application.scene_builder import _clip_geometries
+from hipparchus.application.scene_sea import _clip_geometries
 
 
 def _square(x: float, y: float, size: float = 1.0) -> Polygon:

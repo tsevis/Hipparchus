@@ -18,34 +18,35 @@ except Exception:  # noqa: BLE001
 
 from hipparchus.data_sources.data_source_manager import DataSourceConfig, DataSourceManager
 from hipparchus.data_sources.provider import BBoxQuery
-from hipparchus.data_sources.terrain_tiles import (
+from hipparchus.data_sources.emodnet_bathymetry import (
     EMODNET_COVERAGE_EXTENT,
-    TILE_PIXELS,
-    TerrainTileError,
-    TerrainTileSettings,
-    _Window,
     MEASURED_THRESHOLD,
     _band_is_measured,
     _band_surveyed_share,
     _blend_sea_floor,
-    _choose_zoom,
-    _column_longitudes,
-    _decode_terrarium,
     _depth_source,
     _effective_measured_grid,
     _emodnet_covers,
     _emodnet_widened_bounds,
-    _ground_resolution_metres,
-    _lonlat_for_pixel,
     _measured_along_polyline,
-    _pixel_for,
     _read_emodnet_tiff,
-    _row_latitudes,
     _surveyed_share_along_polyline,
     _surveyed_share_of_sea,
-    _tile_for,
-    terrain_tile_provider,
 )
+from hipparchus.data_sources.terrain_grid import (
+    TILE_PIXELS,
+    TerrainTileError,
+    _Window,
+    _choose_zoom,
+    _column_longitudes,
+    _decode_terrarium,
+    _ground_resolution_metres,
+    _lonlat_for_pixel,
+    _pixel_for,
+    _row_latitudes,
+    _tile_for,
+)
+from hipparchus.data_sources.terrain_tiles import TerrainTileSettings, terrain_tile_provider
 from hipparchus.geometry.bands import ElevationBand
 from hipparchus.geometry.projection import MAX_MERCATOR_LAT
 from shapely.geometry import Point
