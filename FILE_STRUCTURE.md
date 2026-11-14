@@ -70,10 +70,14 @@ src/hipparchus/
 │   ├── places.py             The saved places, with ⌘1…⌘9 derived from them
 │   ├── preset_store.py       Persistent custom preset storage
 │   ├── presets.py            Built-in cartographic presets
+│   ├── preset_styles.py      The layer-style table behind each built-in preset
 │   ├── provenance.py         One word for what a whole map is made of
 │   ├── quality.py            Quality / preview / export profile modes
 │   ├── readiness.py          Why Render map will not work, before the click
 │   ├── scene_builder.py      Clips, simplifies, classifies, and derives geometry
+│   ├── scene_labels.py       Label collisions and how a street name sits on its street
+│   ├── scene_layer_order.py  The order layers are drawn in
+│   ├── scene_sea.py          Clipping to the frame and inferring which side of a coast is sea
 │   ├── session.py            Every choice the window holds, as one value
 │   ├── session_edit.py       What the Edit menu calls a change
 │   ├── session_history.py    Undo, with the rule that a fetch is never redone
@@ -103,6 +107,7 @@ src/hipparchus/
 │   ├── erddap.py              One federated ocean-data client with server-side subsetting, shared by currents and sea temperature
 │   ├── map_models.py         Map-model registry (OSM, vector tiles, DEM, night lights, etc.)
 │   ├── optional_providers.py Optional local-source backends (PBF, MVT/PMTiles, shapefile, GeoParquet, raster contours)
+│   ├── provider_layers.py    Sorts optional-source features into layers and names them
 │   ├── overpass_geojson.py   Overpass JSON to layer-separated GeoJSON
 │   ├── overpass_provider.py  Overpass API client with endpoint fallback
 │   ├── overpass_query.py     Overpass QL query builder
@@ -113,6 +118,8 @@ src/hipparchus/
 │   ├── seamarks.py           OSM's seamark:* namespace read into six chart layers
 │   ├── sst_provider.py       Sea surface temperature from NASA JPL MUR, through the ERDDAP client
 │   ├── terrain_tiles.py      Real elevation from public terrain tiles, blended with EMODnet bathymetry where surveyed
+│   ├── terrain_grid.py       Tile and pixel arithmetic for elevation tiles
+│   ├── emodnet_bathymetry.py EMODnet sea floor, and how much of a depth is surveyed
 │   ├── usgs_provider.py      Live USGS seismicity as magnitude-scaled circles
 │   ├── rate_limit.py         Request rate limiting
 │   └── simulated_field.py    Procedural terrain field, contoured as synthetic relief
@@ -152,6 +159,7 @@ src/hipparchus/
 │   ├── geometry_adapter.py   Adapts scene geometry to render primitives
 │   ├── models.py             Render data models
 │   ├── not_for_navigation.py Whether a sheet is drawing the sea, and what it therefore has to say
+│   ├── skia_fonts.py         Loading skia and choosing a typeface for a piece of text
 │   └── skia_renderer.py      Skia-backed renderer
 │
 └── ui/                       Desktop interface
@@ -162,6 +170,13 @@ src/hipparchus/
     ├── icons.py              Vector icons drawn on small canvases
     ├── locator_window.py     The floating Locator, with room to aim in
     ├── main_window.py        Tkinter main window — wiring, not rules
+    ├── window_canvas.py      MainWindow mixin: scenes from the worker, redraw, view controls
+    ├── window_preferences.py MainWindow mixin: About, Settings, saving a preset
+    ├── window_session.py     MainWindow mixin: restore, undo history, save on close
+    ├── window_sidebar.py     MainWindow mixin: style picker, saved styles, plugin summary
+    ├── window_sources.py     MainWindow mixin: local source files and the Natural Earth download
+    ├── window_theme.py       MainWindow mixin: light and dark
+    ├── projection_choices.py The projections the window offers, as the menu names them
     ├── map_canvas.py         The map: pan, zoom, turn, marquee, controls
     ├── menubar.py            The menu bar, built from the verb table
     ├── page_panel.py         Page: paper, orientation, resolution, and the SVG's furniture
