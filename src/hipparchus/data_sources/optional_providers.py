@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import gzip
 import json
+import logging
 import math
 from pathlib import Path
 import sqlite3
@@ -23,6 +24,11 @@ from hipparchus.data_sources.map_models import ProviderStatus
 from hipparchus.data_sources.overpass_geojson import _classify_layer, _geometry_for_element
 from hipparchus.data_sources.overpass_query import SUPPORTED_LAYERS
 from hipparchus.data_sources.provider import BBoxQuery, FeatureCollection, GeoJSONMapping
+
+_LOGGER = logging.getLogger(__name__)
+
+# The zoom a PMTiles archive is read at when its header does not declare one.
+_PMTILES_DEFAULT_ZOOM = 14
 
 
 EXTRA_LAYERS = (
@@ -484,6 +490,21 @@ def _feature_collection_from_mbtiles(path: Path, *, query: BBoxQuery, provider_i
     )
 
 
+def _pmtiles_max_zoom(reader: Any, *, default: int) -> int:
+    """The deepest zoom the archive declares, or `default` when it cannot say.
+
+    An archive whose header cannot be read is still worth reading at a guessed
+    zoom, but the guess is recorded: a map drawn at the wrong zoom with nothing
+    in the log is a defect nobody can trace back to its file.
+    """
+    try:
+        header = reader.header()
+        return int(header.get("max_zoom", header.get("maxZoom", default)))
+    except Exception as exc:  # noqa: BLE001 - any reader failure means the same thing here
+        _LOGGER.warning("PMTiles header unreadable (%s); reading at zoom %d", exc, default)
+        return default
+
+
 def _feature_collection_from_pmtiles(path: Path, *, query: BBoxQuery, provider_id: str) -> FeatureCollection:
     import mapbox_vector_tile  # type: ignore
 
@@ -494,14 +515,9 @@ def _feature_collection_from_pmtiles(path: Path, *, query: BBoxQuery, provider_i
 
     features_by_layer = _empty_layers()
     query_box = box(query.min_lon, query.min_lat, query.max_lon, query.max_lat)
-    zoom = 14
     with path.open("rb") as handle:
         reader = Reader(MmapSource(handle))
-        try:
-            header = reader.header()
-            zoom = int(header.get("max_zoom", header.get("maxZoom", zoom)))
-        except Exception:
-            pass
+        zoom = _pmtiles_max_zoom(reader, default=_PMTILES_DEFAULT_ZOOM)
         for z, x, y in _tiles_for_bbox(query, zoom):
             tile = reader.get(z, x, y)
             if tile is None:
