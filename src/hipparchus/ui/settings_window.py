@@ -39,7 +39,7 @@ def font_choices() -> tuple[str, ...]:
     """Families for the label-face dropdown: the bundled multilingual default
     first, then every family the system reports, de-duplicated."""
     try:
-        from hipparchus.rendering.skia_renderer import (
+        from hipparchus.rendering.skia_fonts import (
             DEFAULT_FONT_FAMILY,
             available_font_families,
         )

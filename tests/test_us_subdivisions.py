@@ -13,7 +13,7 @@ import unittest
 
 from shapely.geometry import LineString
 
-from hipparchus.data_sources.optional_providers import _layer_for_properties
+from hipparchus.data_sources.provider_layers import _layer_for_properties
 
 _LINE = LineString([(0.0, 0.0), (1.0, 1.0)])
 

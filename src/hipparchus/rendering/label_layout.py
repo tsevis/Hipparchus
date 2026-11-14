@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 
 from hipparchus.rendering.models import PlaceLabel, RenderLayer, RenderScene
-from hipparchus.rendering.skia_renderer import (
+from hipparchus.rendering.skia_fonts import (
     _default_typeface,
     _family_typeface,
     _import_skia,

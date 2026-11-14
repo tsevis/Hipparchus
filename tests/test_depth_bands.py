@@ -15,7 +15,7 @@ import unittest
 
 from hipparchus.application.layer_inventory import LAYER_LABELS, layer_group
 from hipparchus.data_sources.optional_providers import ALL_OPTIONAL_LAYERS
-from hipparchus.data_sources.terrain_tiles import _depth_band_mode
+from hipparchus.data_sources.emodnet_bathymetry import _depth_band_mode
 from hipparchus.geometry.bands import (
     STATED_DEPTHS,
     DepthBandMode,

@@ -21,7 +21,7 @@ from shapely.geometry import Polygon, box, mapping
 from shapely.ops import unary_union
 
 from hipparchus.data_sources.map_models import ProviderStatus
-from hipparchus.data_sources.optional_providers import _collection_from_layers, _empty_layers
+from hipparchus.data_sources.provider_layers import _collection_from_layers, _empty_layers
 from hipparchus.data_sources.provider import BBoxQuery, FeatureCollection
 from hipparchus.geometry.orbits import (
     SubPoint,
